@@ -191,7 +191,6 @@ class RawViewApp(QObject):
         # Connect bidirectional preview state for global key interception
         self.preview_hud.visibility_changed.connect(self.hover_monitor.set_preview_visible)
         self.preview_hud.pin_state_changed.connect(self.hover_monitor.set_preview_pinned)
-        self.hover_monitor.preview_hud_rect_provider = self.preview_hud.get_hud_rect
 
         # 3. System Tray Manager
         self.tray_manager = TrayManager(self.config)
