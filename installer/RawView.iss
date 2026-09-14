@@ -1,8 +1,8 @@
-; Inno Setup Script for RawView v3.9.4
+; Inno Setup Script for RawView v3.9.5
 ; Installs into C:\Program Files\RawView with Windows Boot Autostart & Clean Uninstallation
 
 #define MyAppName "RawView"
-#define MyAppVersion "3.9.4"
+#define MyAppVersion "3.9.5"
 #define MyAppPublisher "BlackBox THC"
 #define MyAppURL "https://github.com/jimhpar/RawView_File_Preview"
 #define MyAppExeName "RawView.exe"
@@ -25,7 +25,12 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
+UsePreviousAppDir=yes
+UsePreviousTasks=no
+DisableDirPage=auto
+DisableProgramGroupPage=auto
 UninstallDisplayIcon={app}\{#MyAppExeName}
+UpdateUninstallLogAppName=yes
 CloseApplications=yes
 RestartApplications=no
 
@@ -72,4 +77,16 @@ begin
   Exec('taskkill.exe', '/F /IM RawView.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(250);
   Result := True;
+end;
+
+// Ensure RawView process is terminated before copying files
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssInstall then
+  begin
+    Exec('taskkill.exe', '/F /IM RawView.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(300);
+  end;
 end;

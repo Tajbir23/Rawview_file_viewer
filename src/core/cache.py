@@ -53,8 +53,8 @@ class DiskCache:
             try:
                 with open(meta_path, "r", encoding="utf-8") as f:
                     meta = json.load(f)
-                img = Image.open(img_path)
-                img.load()  # Read into memory
+                with Image.open(img_path) as img_f:
+                    img = img_f.copy()
                 return img, meta
             except Exception:
                 pass

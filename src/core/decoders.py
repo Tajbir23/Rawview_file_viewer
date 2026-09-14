@@ -59,12 +59,16 @@ class ShellImageFactory:
         Extracts native Windows shell thumbnail using IShellItemImageFactory.
         thumbnail_only=True (default) ensures we NEVER extract generic file icons.
         """
+        co_inited = False
+        factory = None
         try:
             if not os.path.exists(file_path):
                 return None
             # Ensure COM is initialized on background worker threads
             try:
-                ctypes.windll.ole32.CoInitialize(None)
+                hr_init = ctypes.windll.ole32.CoInitialize(None)
+                if hr_init in (0, 1):
+                    co_inited = True
             except Exception:
                 pass
 
@@ -89,6 +93,17 @@ class ShellImageFactory:
                     return qim
         except Exception:
             pass
+        finally:
+            if factory is not None:
+                try:
+                    factory.Release()
+                except Exception:
+                    pass
+            if co_inited:
+                try:
+                    ctypes.windll.ole32.CoUninitialize()
+                except Exception:
+                    pass
         return None
 
 class PreviewResult:
@@ -441,80 +456,92 @@ class AiDecoder:
         # Renders crystal-clear vector artwork at high DPI (up to 1440px / 300 DPI) for crisp zoom
         try:
             doc = fitz.open(file_path)
-            if len(doc) > 0:
-                page = doc[0]
-                has_content = len(page.get_drawings()) > 0 or len(page.get_text().strip()) > 0 or len(page.get_images()) > 0
-                rect = page.rect
-                page_w = max(int(rect.width), 10)
-                page_h = max(int(rect.height), 10)
+            try:
+                if len(doc) > 0:
+                    page = doc[0]
+                    has_content = len(page.get_drawings()) > 0 or len(page.get_text().strip()) > 0 or len(page.get_images()) > 0
+                    rect = page.rect
+                    page_w = max(int(rect.width), 10)
+                    page_h = max(int(rect.height), 10)
 
-                dpi = int(min(max_size / max(page_w, page_h, 1) * 72, 300))
-                dpi = max(dpi, 72)
-                pix = page.get_pixmap(dpi=dpi)
+                    dpi = int(min(max_size / max(page_w, page_h, 1) * 72, 300))
+                    dpi = max(dpi, 72)
+                    pix = page.get_pixmap(dpi=dpi)
 
-                if pix.width > 0 and pix.height > 0:
-                    samples = pix.samples
-                    if has_content or (len(samples) > 0 and min(samples) < 248):
-                        data = pix.tobytes("png")
-                        qim = QImage.fromData(QByteArray(data))
-                        if not qim.isNull() and not _is_blank_image(qim):
-                            # Verify that vector render is complete and not an incomplete pasteboard fragment
-                            if _is_incomplete_vector_render(page, qim, xmp_qim):
+                    if pix.width > 0 and pix.height > 0:
+                        samples = pix.samples
+                        if has_content or (len(samples) > 0 and min(samples) < 248):
+                            data = pix.tobytes("png")
+                            qim = QImage.fromData(QByteArray(data))
+                            if not qim.isNull() and not _is_blank_image(qim):
+                                # Verify that vector render is complete and not an incomplete pasteboard fragment
+                                if _is_incomplete_vector_render(page, qim, xmp_qim):
+                                    return PreviewResult(
+                                        qimage=xmp_qim,
+                                        width=xmp_qim.width(),
+                                        height=xmp_qim.height(),
+                                        mode="RGB (Full Workspace)",
+                                        format_name="AI",
+                                        file_size=size,
+                                        extra_info="Workspace Thumbnail (Canvas Composite)"
+                                    )
+                                artboard_info = f"Artboard 1 of {len(doc)}" if len(doc) > 1 else "Artboards: 1"
                                 return PreviewResult(
-                                    qimage=xmp_qim,
-                                    width=xmp_qim.width(),
-                                    height=xmp_qim.height(),
-                                    mode="RGB (Full Workspace)",
+                                    qimage=qim,
+                                    width=page_w,
+                                    height=page_h,
+                                    mode="RGB (Vector Artboard)",
                                     format_name="AI",
                                     file_size=size,
-                                    extra_info="Workspace Thumbnail (Canvas Composite)"
+                                    extra_info=artboard_info
                                 )
-                            artboard_info = f"Artboard 1 of {len(doc)}" if len(doc) > 1 else "Artboards: 1"
-                            return PreviewResult(
-                                qimage=qim,
-                                width=page_w,
-                                height=page_h,
-                                mode="RGB (Vector Artboard)",
-                                format_name="AI",
-                                file_size=size,
-                                extra_info=artboard_info
-                            )
+            finally:
+                try:
+                    doc.close()
+                except Exception:
+                    pass
         except Exception:
             pass
 
         # 3. Fallback Vector: PDFium Rasterizer
         try:
             pdf = pdfium.PdfDocument(file_path)
-            if len(pdf) > 0:
-                page = pdf[0]
-                page_w = int(page.get_width())
-                page_h = int(page.get_height())
-                scale = min(max_size / max(page_w, page_h, 1), 3.0)
-                scale = max(scale, 1.0)
+            try:
+                if len(pdf) > 0:
+                    page = pdf[0]
+                    page_w = int(page.get_width())
+                    page_h = int(page.get_height())
+                    scale = min(max_size / max(page_w, page_h, 1), 3.0)
+                    scale = max(scale, 1.0)
 
-                pil_img = page.render(scale=scale).to_pil()
-                qim = pil_to_qimage(pil_img)
-                if not qim.isNull() and not _is_blank_image(qim):
-                    if xmp_qim and not xmp_qim.isNull():
+                    pil_img = page.render(scale=scale).to_pil()
+                    qim = pil_to_qimage(pil_img)
+                    if not qim.isNull() and not _is_blank_image(qim):
+                        if xmp_qim and not xmp_qim.isNull():
+                            return PreviewResult(
+                                qimage=xmp_qim,
+                                width=xmp_qim.width(),
+                                height=xmp_qim.height(),
+                                mode="RGB (Full Workspace)",
+                                format_name="AI",
+                                file_size=size,
+                                extra_info="Workspace Thumbnail"
+                            )
+                        artboard_info = f"Artboard 1 of {len(pdf)}" if len(pdf) > 1 else "Artboards: 1"
                         return PreviewResult(
-                            qimage=xmp_qim,
-                            width=xmp_qim.width(),
-                            height=xmp_qim.height(),
-                            mode="RGB (Full Workspace)",
+                            qimage=qim,
+                            width=page_w,
+                            height=page_h,
+                            mode="RGB (Vector Artboard)",
                             format_name="AI",
                             file_size=size,
-                            extra_info="Workspace Thumbnail"
+                            extra_info=artboard_info
                         )
-                    artboard_info = f"Artboard 1 of {len(pdf)}" if len(pdf) > 1 else "Artboards: 1"
-                    return PreviewResult(
-                        qimage=qim,
-                        width=page_w,
-                        height=page_h,
-                        mode="RGB (Vector Artboard)",
-                        format_name="AI",
-                        file_size=size,
-                        extra_info=artboard_info
-                    )
+            finally:
+                try:
+                    pdf.close()
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -752,32 +779,38 @@ class PdfDecoder:
     def decode(file_path: str, max_size: int = 1440) -> PreviewResult:
         size = os.path.getsize(file_path)
         pdf = pdfium.PdfDocument(file_path)
-        page_count = len(pdf)
-        if page_count == 0:
-            raise RuntimeError("Empty PDF document.")
+        try:
+            page_count = len(pdf)
+            if page_count == 0:
+                raise RuntimeError("Empty PDF document.")
 
-        page0 = pdf[0]
-        page_w = int(page0.get_width())
-        page_h = int(page0.get_height())
+            page0 = pdf[0]
+            page_w = int(page0.get_width())
+            page_h = int(page0.get_height())
 
-        scale = min(max_size / max(page_w, page_h, 1), 2.5)
-        scale = max(scale, 1.0)
+            scale = min(max_size / max(page_w, page_h, 1), 2.5)
+            scale = max(scale, 1.0)
 
-        pil_img0 = page0.render(scale=scale).to_pil()
-        qim0 = pil_to_qimage(pil_img0)
+            pil_img0 = page0.render(scale=scale).to_pil()
+            qim0 = pil_to_qimage(pil_img0)
 
-        # Generate thumbnails for all pages (capped at 60 for instant rendering)
-        thumbs = []
-        max_thumbs = min(page_count, 60)
-        for i in range(max_thumbs):
+            # Generate thumbnails for all pages (capped at 60 for instant rendering)
+            thumbs = []
+            max_thumbs = min(page_count, 60)
+            for i in range(max_thumbs):
+                try:
+                    p = pdf[i]
+                    pw = p.get_width()
+                    t_scale = max(72.0 / max(pw, 1), 0.1)
+                    t_pil = p.render(scale=t_scale).to_pil()
+                    thumbs.append(pil_to_qimage(t_pil))
+                except Exception:
+                    thumbs.append(None)
+        finally:
             try:
-                p = pdf[i]
-                pw = p.get_width()
-                t_scale = max(72.0 / max(pw, 1), 0.1)
-                t_pil = p.render(scale=t_scale).to_pil()
-                thumbs.append(pil_to_qimage(t_pil))
+                pdf.close()
             except Exception:
-                thumbs.append(None)
+                pass
 
         def load_pdf_page(idx: int) -> QImage:
             try:

@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import (
-    QObject, pyqtSignal, QRunnable, QThreadPool, Qt, QAbstractNativeEventFilter
+    QObject, pyqtSignal, QRunnable, QThreadPool, Qt, QAbstractNativeEventFilter, QTimer
 )
 from PyQt6.QtGui import QFont, QColor, QPalette
 
@@ -191,11 +191,13 @@ class RawViewApp(QObject):
         # Connect bidirectional preview state for global key interception
         self.preview_hud.visibility_changed.connect(self.hover_monitor.set_preview_visible)
         self.preview_hud.pin_state_changed.connect(self.hover_monitor.set_preview_pinned)
+        self.hover_monitor.preview_hud_rect_provider = self.preview_hud.get_hud_rect
 
         # 3. System Tray Manager
         self.tray_manager = TrayManager(self.config)
         self.tray_manager.config_updated.connect(self._on_config_updated)
         self.tray_manager.quit_requested.connect(self.shutdown)
+        self.tray_manager.check_updates_requested.connect(self._on_check_updates_requested)
         self.preview_hud.open_settings_requested.connect(self.tray_manager.show_settings)
         self.tray_manager.show()
 
@@ -212,6 +214,9 @@ class RawViewApp(QObject):
 
         # Start Hover Monitoring
         self.hover_monitor.start()
+
+        # 5. Deferred Weekly Background Update Check (10s after startup)
+        QTimer.singleShot(10000, self._check_updates_if_due)
 
     def _on_file_hovered(self, file_path: str, screen_x: int, screen_y: int):
         is_ftp = file_path.startswith("ftp://") or file_path.startswith("ftps://")
@@ -290,6 +295,62 @@ class RawViewApp(QObject):
 
         # Async background config save so disk I/O does not delay responsiveness
         self.thread_pool.start(ConfigSaveRunnable(self.config))
+
+    def _check_updates_if_due(self):
+        """Checks for updates weekly if auto_check_updates is enabled."""
+        if not self.config.get("auto_check_updates", True):
+            return
+        import time
+        now = time.time()
+        interval_days = self.config.get("update_check_interval_days", 7)
+        last_check = self.config.get("last_update_check_timestamp", 0.0)
+        
+        if now - last_check >= interval_days * 86400:
+            from src.core.updater import UpdateCheckWorker
+            self._auto_update_worker = UpdateCheckWorker(timeout=6.0, parent=self)
+            self._auto_update_worker.update_checked.connect(self._on_auto_update_result)
+            self._auto_update_worker.start()
+
+    def _on_auto_update_result(self, info: dict):
+        import time
+        self.config["last_update_check_timestamp"] = time.time()
+        self.thread_pool.start(ConfigSaveRunnable(self.config))
+        if info.get("has_update"):
+            from src.ui.update_dialog import UpdatePromptDialog
+            self._update_dialog = UpdatePromptDialog(info)
+            self._update_dialog.show()
+
+    def _on_check_updates_requested(self):
+        """Manual update check triggered from System Tray menu."""
+        from src.core.updater import UpdateCheckWorker
+        self._manual_update_worker = UpdateCheckWorker(timeout=6.0, parent=self)
+        self._manual_update_worker.update_checked.connect(self._on_update_check_result)
+        self._manual_update_worker.check_failed.connect(self._on_update_check_failed)
+        self._manual_update_worker.start()
+
+    def _on_update_check_result(self, info: dict):
+        import time
+        self.config["last_update_check_timestamp"] = time.time()
+        self.thread_pool.start(ConfigSaveRunnable(self.config))
+        from src.ui.update_dialog import UpdatePromptDialog
+        if info.get("has_update"):
+            self._update_dialog = UpdatePromptDialog(info)
+            self._update_dialog.show()
+        else:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                None,
+                "RawView Update",
+                f"You are already using the latest version ({APP_VERSION})!"
+            )
+
+    def _on_update_check_failed(self, error_msg: str):
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.warning(
+            None,
+            "Update Check Failed",
+            f"Could not connect to GitHub to check for updates:\n{error_msg}"
+        )
 
     def shutdown(self):
         if getattr(self, "hotkey_registered", False):

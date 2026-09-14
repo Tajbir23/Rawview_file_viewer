@@ -76,6 +76,8 @@ def build():
         "--hidden-import=win32con",
         "--hidden-import=striprtf",
         "--hidden-import=src.core.bijoy_converter",
+        "--hidden-import=src.core.updater",
+        "--hidden-import=src.ui.update_dialog",
         str(BASE_DIR / "src" / "app.py")
     ]
 

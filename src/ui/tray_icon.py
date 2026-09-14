@@ -13,6 +13,7 @@ class TrayManager(QObject):
     """Manages the Windows System Tray icon, notifications, and context menu."""
     config_updated = pyqtSignal(dict)
     quit_requested = pyqtSignal()
+    check_updates_requested = pyqtSignal()
 
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
@@ -87,7 +88,12 @@ class TrayManager(QObject):
         settings_action.triggered.connect(self.show_settings)
         self.menu.addAction(settings_action)
 
-        # 5. About
+        # 5. Check for Updates
+        check_update_action = QAction("Check for Updates...", self.menu)
+        check_update_action.triggered.connect(self.check_updates_requested.emit)
+        self.menu.addAction(check_update_action)
+
+        # 6. About
         about_action = QAction(f"About {APP_NAME}", self.menu)
         about_action.triggered.connect(self._show_about)
         self.menu.addAction(about_action)

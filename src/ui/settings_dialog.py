@@ -528,7 +528,36 @@ class SettingsDialog(QDialog):
         clear_btn.clicked.connect(self._clear_cache)
         cache_layout.addWidget(clear_btn)
 
-        main_layout.addWidget(cache_group)
+        # 10. Software Updates
+        update_group = QGroupBox("Software Updates", self)
+        update_layout = QVBoxLayout(update_group)
+        update_layout.setContentsMargins(14, 12, 14, 12)
+        update_layout.setSpacing(8)
+
+        self.auto_update_cb = QCheckBox("Automatically check for updates weekly (via GitHub Releases)", self)
+        self.auto_update_cb.setChecked(self.config.get("auto_check_updates", True))
+        update_layout.addWidget(self.auto_update_cb)
+
+        up_action_layout = QHBoxLayout()
+        self.check_updates_btn = QPushButton("🔄 Check for Updates Now", self)
+        self.check_updates_btn.setObjectName("checkUpdatesBtn")
+        self.check_updates_btn.clicked.connect(self._on_check_updates_clicked)
+        up_action_layout.addWidget(self.check_updates_btn)
+
+        last_ts = self.config.get("last_update_check_timestamp", 0.0)
+        if last_ts > 0:
+            import datetime
+            dt_str = datetime.datetime.fromtimestamp(last_ts).strftime("%d %b %Y, %I:%M %p")
+            status_init = f"Last checked: {dt_str} | Current version: {APP_VERSION}"
+        else:
+            status_init = f"Current version: {APP_VERSION} | Never checked"
+
+        self.update_status_label = QLabel(status_init, self)
+        self.update_status_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
+        up_action_layout.addWidget(self.update_status_label, stretch=1)
+
+        update_layout.addLayout(up_action_layout)
+        main_layout.addWidget(update_group)
 
         scroll.setWidget(scroll_widget)
         return scroll
@@ -806,6 +835,45 @@ class SettingsDialog(QDialog):
         self.config["autostart"] = autostart_wanted
         set_autostart(autostart_wanted)
 
+        # Software Updates
+        self.config["auto_check_updates"] = self.auto_update_cb.isChecked()
+
         save_config(self.config)
         self.config_changed.emit(self.config)
         self.accept()
+
+    def _on_check_updates_clicked(self):
+        self.check_updates_btn.setEnabled(False)
+        self.check_updates_btn.setText("Checking...")
+        self.update_status_label.setText("⏳ Checking GitHub for updates...")
+        self.update_status_label.setStyleSheet("color: #38BDF8; font-size: 11px;")
+
+        from src.core.updater import UpdateCheckWorker
+        self._update_worker = UpdateCheckWorker(timeout=6.0, parent=self)
+        self._update_worker.update_checked.connect(self._on_update_check_result)
+        self._update_worker.check_failed.connect(self._on_update_check_failed)
+        self._update_worker.start()
+
+    def _on_update_check_result(self, info: dict):
+        self.check_updates_btn.setEnabled(True)
+        self.check_updates_btn.setText("🔄 Check for Updates Now")
+        import time
+        self.config["last_update_check_timestamp"] = time.time()
+        
+        has_update = info.get("has_update", False)
+        latest_ver = info.get("latest_version", APP_VERSION)
+        if has_update:
+            self.update_status_label.setText(f"🚀 New version {latest_ver} available!")
+            self.update_status_label.setStyleSheet("color: #38BDF8; font-weight: bold; font-size: 11px;")
+            from src.ui.update_dialog import UpdatePromptDialog
+            dlg = UpdatePromptDialog(info, parent=self)
+            dlg.exec()
+        else:
+            self.update_status_label.setText(f"✅ You're up to date! RawView {APP_VERSION} is the latest version.")
+            self.update_status_label.setStyleSheet("color: #34D399; font-size: 11px;")
+
+    def _on_update_check_failed(self, error_msg: str):
+        self.check_updates_btn.setEnabled(True)
+        self.check_updates_btn.setText("🔄 Check for Updates Now")
+        self.update_status_label.setText(f"⚠️ Could not check updates: {error_msg}")
+        self.update_status_label.setStyleSheet("color: #FB7185; font-size: 11px;")

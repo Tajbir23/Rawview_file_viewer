@@ -1,3 +1,23 @@
+# 🚀 RawView v3.9.5 Release Notes
+
+**RawView v3.9.5** resolves a critical Windows file locking issue where hovering over a file (PDF, AI, Media, Office, Images) caused the file to remain locked by the process, preventing users from renaming or deleting the file in Windows Explorer ("The action can't be completed because the file is open in RawView" / `WinError 32`).
+
+---
+
+## 🌟 What's New in v3.9.5
+
+### 🔓 1. Zero-Lock Immediate File Handle Release
+* **Instant PDFium & PyMuPDF Closure**: Fixed leaked file handles in `PdfDecoder` and `AiDecoder`. `pdfium.PdfDocument` and `fitz.open` now execute inside strict `try...finally` blocks, immediately releasing the underlying OS file descriptors the instant preview decoding finishes.
+* **COM Shell Provider Lifetime Management**: Explicitly calls `factory.Release()` and `CoUninitialize()` in `ShellImageFactory`, guaranteeing that third-party Windows shell thumbnail extensions (Adobe, Media, etc.) instantly release file locks.
+* **Immediate Cache File Descriptor Release**: Ensures `DiskCache` operations cleanly close all image file descriptors using context managers.
+
+### ⚡ 2. Seamless Windows Explorer Inline Rename Integration
+* **Inline Rename (EditControl) Immunity**: When an item in Windows Explorer or Desktop is in rename mode (an `EditControl` is active or focused), RawView automatically detects it, aborts hover resolution, and clears any active hover, ensuring RawView never attempts to decode or touch a file while you are renaming it.
+* **F2 Hotkey Dismissal**: Pressing `F2` (the universal Windows Rename shortcut) immediately dismisses any active hover preview and frees all media/decoder resources so Windows Explorer can enter rename mode without conflict.
+* **Outside Click Auto-Dismiss**: When hover preview is unpinned, clicking the mouse (left or right click) outside the preview HUD (e.g. clicking a file to rename or right-clicking for the context menu) instantly dismisses the preview and stops any media playback.
+
+---
+
 # 🚀 RawView v3.9.4 Release Notes
 
 **RawView v3.9.4** fixes a critical file resolution bug where hovering over a file (e.g. JPEG) falsely triggered previews of same-named files with different extensions (e.g. PSD) even when that format was turned off in Settings. Furthermore, v3.9.4 introduces a **0ms native Windows global hotkey (`Ctrl + \``)** and an **instant floating on-screen glassmorphic HUD pill** for ultra-responsive toggle feedback.
