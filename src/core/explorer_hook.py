@@ -201,10 +201,7 @@ class ExplorerHoverMonitor(QObject):
         self._last_resolved_pos = QPoint(-1, -1)
         self.space_key_down = False
         self.esc_key_down = False
-        self.f2_key_down = False
-        self.mouse_click_down = False
         self.ctrl_backtick_down = False
-        self.preview_hud_rect_provider = None
         
         # Desktop candidate folders
         self.desktop_paths = [
@@ -261,42 +258,6 @@ class ExplorerHoverMonitor(QObject):
                 return
             elif not esc_state:
                 self.esc_key_down = False
-
-            # F2 detection (0x71 = VK_F2): Windows Rename shortcut - immediately dismiss & release file
-            f2_state = bool(win32api.GetAsyncKeyState(win32con.VK_F2) & 0x8000)
-            if f2_state and not self.f2_key_down:
-                self.f2_key_down = True
-                self._clear_hover()
-                self.escape_requested.emit()
-                return
-            elif not f2_state:
-                self.f2_key_down = False
-
-            # Mouse click detection (VK_LBUTTON = 0x01, VK_RBUTTON = 0x02)
-            # Dismisses unpinned hover preview immediately when clicking outside the preview HUD (e.g. in Explorer)
-            if not self.preview_is_pinned:
-                l_state = bool(win32api.GetAsyncKeyState(0x01) & 0x8000)
-                r_state = bool(win32api.GetAsyncKeyState(0x02) & 0x8000)
-                mouse_clicked = l_state or r_state
-                if mouse_clicked and not self.mouse_click_down:
-                    self.mouse_click_down = True
-                    is_inside_preview = False
-                    if self.preview_hud_rect_provider:
-                        try:
-                            rect = self.preview_hud_rect_provider()
-                            if rect:
-                                rx, ry, rw, rh = rect
-                                cur_p = QCursor.pos()
-                                if rx <= cur_p.x() <= rx + rw and ry <= cur_p.y() <= ry + rh:
-                                    is_inside_preview = True
-                        except Exception:
-                            pass
-                    if not is_inside_preview:
-                        self._clear_hover()
-                        self.escape_requested.emit()
-                        return
-                elif not mouse_clicked:
-                    self.mouse_click_down = False
 
         # Ctrl+` global hotkey: toggle hover preview ON/OFF (works system-wide, always)
         # VK_CONTROL = 0x11, VK_OEM_3 = 0xC0 (backtick/grave accent key)
@@ -517,12 +478,6 @@ class ExplorerHoverMonitor(QObject):
             if not elem:
                 return None, None
 
-            # Immediate check: if hovering directly over an EditControl in Explorer, user is actively renaming!
-            if elem.ControlTypeName == "EditControl" or getattr(elem, "ClassName", "") == "Edit":
-                if self.is_hover_active and not self.preview_is_pinned:
-                    self._clear_hover()
-                return None, None
-
             bounding_box = None
             try:
                 r = elem.BoundingRectangle
@@ -558,16 +513,6 @@ class ExplorerHoverMonitor(QObject):
                 if elem.ControlTypeName in ("ListControl", "PaneControl", "WindowControl", "ScrollBarControl", "HeaderControl", "HeaderItemControl", "ToolBarControl", "MenuBarControl", "GroupControl"):
                     return None, None
                 row_control = elem
-
-            # Check if this item has an active EditControl child (user is renaming this item)
-            try:
-                for child in row_control.GetChildren():
-                    if child.ControlTypeName == "EditControl" or getattr(child, "ClassName", "") == "Edit":
-                        if self.is_hover_active and not self.preview_is_pinned:
-                            self._clear_hover()
-                        return None, None
-            except Exception:
-                pass
 
             # Identify window type
             hwnd = win32gui.WindowFromPoint((x, y))

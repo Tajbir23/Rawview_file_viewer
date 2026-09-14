@@ -1178,20 +1178,6 @@ class FloatingPreviewHUD(QWidget):
             os.startfile(self.current_file_path)
             self.dismiss()
 
-    def get_hud_rect(self) -> tuple[int, int, int, int] | None:
-        """Returns (x, y, width, height) if preview window is visible, else None."""
-        if self.isVisible():
-            return (self.x(), self.y(), self.width(), self.height())
-        return None
-
-    def hideEvent(self, event):
-        super().hideEvent(event)
-        self.video_player.stop_video()
-
-    def closeEvent(self, event):
-        super().closeEvent(event)
-        self.video_player.stop_video()
-
     def wheelEvent(self, event):
         if self.current_result and not self.current_result.is_video:
             delta = event.angleDelta().y()
