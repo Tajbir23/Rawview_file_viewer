@@ -515,31 +515,32 @@ class SettingsDialog(QDialog):
         main_layout.addWidget(std_group)
 
         # 9. Cache Management
-        cache_group = QGroupBox("Cache && Storage", self)
+        cache_group = QGroupBox("Cache && Storage")
         cache_layout = QHBoxLayout(cache_group)
         cache_layout.setContentsMargins(14, 10, 14, 10)
 
         cache_size_mb = self._get_cache_size_mb()
-        self.cache_info_label = QLabel(f"Thumbnail Cache: {cache_size_mb:.1f} MB", self)
+        self.cache_info_label = QLabel(f"Thumbnail Cache: {cache_size_mb:.1f} MB")
         cache_layout.addWidget(self.cache_info_label)
         cache_layout.addStretch()
 
-        clear_btn = QPushButton("Clear Cache", self)
+        clear_btn = QPushButton("Clear Cache")
         clear_btn.clicked.connect(self._clear_cache)
         cache_layout.addWidget(clear_btn)
+        main_layout.addWidget(cache_group)
 
         # 10. Software Updates
-        update_group = QGroupBox("Software Updates", self)
+        update_group = QGroupBox("Software Updates")
         update_layout = QVBoxLayout(update_group)
         update_layout.setContentsMargins(14, 12, 14, 12)
         update_layout.setSpacing(8)
 
-        self.auto_update_cb = QCheckBox("Automatically check for updates weekly (via GitHub Releases)", self)
+        self.auto_update_cb = QCheckBox("Automatically check for updates weekly (via GitHub Releases)")
         self.auto_update_cb.setChecked(self.config.get("auto_check_updates", True))
         update_layout.addWidget(self.auto_update_cb)
 
         up_action_layout = QHBoxLayout()
-        self.check_updates_btn = QPushButton("🔄 Check for Updates Now", self)
+        self.check_updates_btn = QPushButton("🔄 Check for Updates Now")
         self.check_updates_btn.setObjectName("checkUpdatesBtn")
         self.check_updates_btn.clicked.connect(self._on_check_updates_clicked)
         up_action_layout.addWidget(self.check_updates_btn)
@@ -552,7 +553,7 @@ class SettingsDialog(QDialog):
         else:
             status_init = f"Current version: {APP_VERSION} | Never checked"
 
-        self.update_status_label = QLabel(status_init, self)
+        self.update_status_label = QLabel(status_init)
         self.update_status_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
         up_action_layout.addWidget(self.update_status_label, stretch=1)
 
