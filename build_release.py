@@ -97,7 +97,7 @@ def build():
         sys.exit(1)
 
     iss_path = BASE_DIR / "installer" / "RawView.iss"
-    iscc_cmd = [iscc_exe, str(iss_path)]
+    iscc_cmd = [iscc_exe, f"/DMyAppVersion={version_clean}", str(iss_path)]
     res_iss = subprocess.run(iscc_cmd, cwd=str(BASE_DIR / "installer"))
     if res_iss.returncode == 0:
         setup_exe = INSTALLER_OUT / f"RawView_{APP_VERSION}_Setup.exe"
@@ -109,8 +109,12 @@ def build():
             print(f" -> Size: {size_mb:.2f} MB")
             print(f" -> Publisher: {APP_PUBLISHER}")
         print("=" * 60)
+        if not setup_exe.exists():
+            print("ERROR: Inno Setup reported success but the installer is missing.")
+            sys.exit(1)
     else:
         print("ERROR: Inno Setup compilation failed.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     build()

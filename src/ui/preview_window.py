@@ -601,7 +601,7 @@ class FloatingPreviewHUD(QWidget):
     """
     Hardware-accelerated, glassmorphic floating preview window for RawView v3.1.5.
     Seamlessly renders full-resolution images, documents, live video playback,
-    and handles 7-day unlimited trial + Lifetime Pro activation states.
+    and runs permanently unlocked (Lifetime Pro edition).
     """
     pin_state_changed = pyqtSignal(bool)
     visibility_changed = pyqtSignal(bool)

@@ -1,3 +1,34 @@
+# 🚀 RawView v3.9.6 Release Notes
+
+**RawView v3.9.6** is the first release published from the new home at [Tajbir23/Rawview_file_viewer](https://github.com/Tajbir23/Rawview_file_viewer). Every feature is now permanently unlocked, the app no longer contacts GitHub in the background, and support has moved to Telegram.
+
+---
+
+## 📥 Download & Install
+
+1. Download **`RawView_v3.9.6_Setup.exe`** from the **Assets** section below.
+2. Run the installer. If Windows SmartScreen shows "Windows protected your PC", click **More info → Run anyway** (the installer is not code-signed).
+3. RawView starts in the system tray. Hover over any supported file in Windows Explorer to preview it.
+
+Already on an older version? Just run the new installer — it upgrades in place and keeps your settings.
+
+---
+
+## 🌟 What's New in v3.9.6
+
+### 💎 1. Lifetime Pro for Everyone
+* **No trial, no expiry**: The 7-day trial and the activation screen are gone. Every install is permanently unlocked with full Lifetime Pro access to all formats and features.
+* **No license key needed**: Nothing to enter, nothing to renew.
+
+### 🔒 2. No Background Network Calls
+* **Auto-updater removed**: RawView no longer checks GitHub for updates in the background or on startup, and the "Check for Updates" menu entry and Settings section are gone. To update, download the latest installer from the Releases page.
+* FTP file previews still work as before when you hover over `ftp://` items.
+
+### 💬 3. Support on Telegram
+* Support has moved from WhatsApp to the Telegram bot **[@chatGptPlusAIbot](https://t.me/chatGptPlusAIbot)**. Open it from **Settings → Telegram Support**.
+
+---
+
 # 🚀 RawView v3.9.5 Release Notes
 
 **RawView v3.9.5** resolves a critical Windows file locking issue where hovering over a file (PDF, AI, Media, Office, Images) caused the file to remain locked by the process, preventing users from renaming or deleting the file in Windows Explorer ("The action can't be completed because the file is open in RawView" / `WinError 32`).

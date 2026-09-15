@@ -1,6 +1,16 @@
-# RawView (v3.9.5)
+# RawView (v3.9.6)
 
 **RawView** is an ultra-fast, zero-lag Windows desktop utility that shows hardware-accelerated preview popups, multi-page document navigation, and live video playback when hovering over design, graphics, documents, Microsoft Office files, media projects, and standard images in Windows Explorer, Desktop, and File Dialogs.
+
+## 📥 Download
+
+**[⬇️ Download the latest RawView installer](https://github.com/Tajbir23/Rawview_file_viewer/releases/latest)** (Windows 10/11, 64-bit)
+
+1. Open the link above and download `RawView_vX.Y.Z_Setup.exe` from **Assets**.
+2. Run the installer. If SmartScreen warns you, click **More info → Run anyway** (the installer is not code-signed).
+3. RawView starts in the system tray — hover over any supported file in Explorer to preview it.
+
+Support: Telegram bot [@chatGptPlusAIbot](https://t.me/chatGptPlusAIbot)
 
 ---
 
@@ -35,8 +45,8 @@
   - **User-Controlled**: Unchecked by default in settings so you only preview them when enabled.
 - **🎬 Smooth Live Video Playback**: Instant muted looping video previews for **MP4, MKV, MOV, AVI, WMV, WebM, FLV, TS, 3GP** with live progress tracking and resolution badge.
 - **📂 Multi-Tab & Blank Space Isolation**: Intelligent cursor containment prevents phantom previews when hovering over empty space or switching between multiple Explorer tabs.
-- **⏳ 7-Day Free Unlimited Trial**: Unrestricted access to 100% of all features and formats.
-- **🔐 Hardware ID Offline Pro Licensing**: Machine-locked cryptographic activation with zero server dependency.
+- **💎 Lifetime Pro for Everyone**: Every install is permanently unlocked — no trial, no license key, no expiry.
+- **🔒 No Background Network Calls**: No auto-updater or phone-home; updates are downloaded manually from GitHub Releases.
 - **💎 Glassmorphic Floating HUD**: Smooth fade-in animations, format badge color-coding, resolution, color mode, duration, and file size badges.
 - **⚡ Multi-Tier Caching**:
   - **L1 In-Memory LRU Cache**: Sub-millisecond instant recall for active browsing
@@ -52,7 +62,7 @@
   - `Esc`: Close and dismiss preview immediately
   - `Mouse Hover Away`: Auto-dismiss preview on cursor leave (when unpinned)
 - **⚙️ Dual-Tabbed Settings Hub**:
-  - `⚙️ Preferences`: Pro license activation, responsiveness slider, autostart toggle, and categorized format checkboxes with crisp vector checkmarks (`✓`)
+  - `⚙️ Preferences`: Lifetime Pro status & Telegram support, responsiveness slider, autostart toggle, and categorized format checkboxes with crisp vector checkmarks (`✓`)
   - `⌨️ Shortcuts & Controls`: Visual reference cards explaining every shortcut and control
 - **📦 Clean Installer**: Installs into `C:\Program Files\RawView` with "Start RawView on Windows boot" pre-checked by default.
 
@@ -60,10 +70,24 @@
 
 ## 🛠️ Building the Installer
 
-To compile the standalone `RawView_v3.9.1_Setup.exe` installer:
+### Automatic release (GitHub Actions)
+
+Bump `APP_VERSION` in `src/core/config.py`, add a section to `RELEASE_NOTES.md`, then push a matching tag:
 
 ```bash
+git tag v3.9.6
+git push origin v3.9.6
+```
+
+The [Build & Release](.github/workflows/release.yml) workflow builds `RawView_v3.9.6_Setup.exe` on a Windows runner and publishes it as a public GitHub Release, using the top section of `RELEASE_NOTES.md` as the release description.
+
+### Local build
+
+Requires Python 3.12+ and [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+
+```bash
+pip install -r requirements.txt
 python build_release.py
 ```
 
-The installer will be generated in `dist_installer/RawView_v3.9.1_Setup.exe`.
+The installer is generated in `dist_installer/RawView_v3.9.6_Setup.exe`.

@@ -1,10 +1,13 @@
-; Inno Setup Script for RawView v3.9.5
+; Inno Setup Script for RawView
+; Version is injected by build_release.py via /DMyAppVersion=<version> (falls back below)
 ; Installs into C:\Program Files\RawView with Windows Boot Autostart & Clean Uninstallation
 
 #define MyAppName "RawView"
-#define MyAppVersion "3.9.5"
+#ifndef MyAppVersion
+  #define MyAppVersion "3.9.6"
+#endif
 #define MyAppPublisher "BlackBox THC"
-#define MyAppURL "https://github.com/jimhpar/RawView_File_Preview"
+#define MyAppURL "https://github.com/Tajbir23/Rawview_file_viewer"
 #define MyAppExeName "RawView.exe"
 
 [Setup]
