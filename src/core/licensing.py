@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import json
 import winreg
@@ -11,7 +10,6 @@ from src.core.config import APPDATA_DIR
 
 LICENSE_FILE = APPDATA_DIR / "license.json"
 MASTER_SECRET = b"RAWVIEW_PRO_OFFLINE_SECRET_KEY_BLACKBOX_2026_V2"
-TRIAL_DURATION_DAYS = 7
 
 def get_raw_hardware_guid() -> str:
     """Extracts Windows MachineGuid or hardware signature."""
@@ -41,11 +39,11 @@ def generate_pro_key(machine_id: str) -> str:
     return f"RVPRO-{sig[:4]}-{sig[4:8]}-{sig[8:12]}-{sig[12:16]}"
 
 def verify_license_key(machine_id: str, license_key: str) -> bool:
-    """Validates the license key mathematically against the machine ID."""
-    if not machine_id or not license_key:
-        return False
-    expected = generate_pro_key(machine_id)
-    return hmac.compare_digest(expected.strip().upper(), license_key.strip().upper())
+    """
+    Lifetime edition: every build is permanently licensed, so any key is accepted.
+    Kept for API compatibility with callers that still validate a stored key.
+    """
+    return True
 
 def _load_license_store() -> dict:
     os.makedirs(APPDATA_DIR, exist_ok=True)
@@ -67,75 +65,38 @@ def _save_license_store(data: dict):
 
 def get_license_status() -> dict:
     """
-    Returns the comprehensive licensing state:
-    - status: 'PRO_ACTIVE' | 'TRIAL_ACTIVE' | 'TRIAL_EXPIRED'
-    - days_left: int (remaining trial days)
+    Lifetime edition: RawView is permanently unlocked on every machine.
+    Always reports:
+    - status: 'PRO_ACTIVE'
+    - days_left: 0 (no trial, nothing expires)
     - machine_id: str
-    - is_unlocked: bool (True allows full previewing; False triggers activation card)
-    - license_key: str
+    - is_unlocked: True
+    - license_key: str (the machine's lifetime key)
     """
     machine_id = get_machine_id()
+    lifetime_key = generate_pro_key(machine_id)
+
+    # Persist the lifetime activation once so license.json reflects the Pro state.
     store = _load_license_store()
-
-    # 1. Check if Lifetime Pro is activated
-    saved_key = store.get("license_key", "")
-    if saved_key and verify_license_key(machine_id, saved_key):
-        return {
-            "status": "PRO_ACTIVE",
-            "days_left": 0,
-            "machine_id": machine_id,
-            "is_unlocked": True,
-            "license_key": saved_key
-        }
-
-    # 2. Check / initialize 7-day Free Trial
-    install_time = store.get("install_time")
-    now = time.time()
-
-    if not install_time:
-        install_time = now
-        store["install_time"] = install_time
+    if store.get("license_key") != lifetime_key or store.get("machine_id") != machine_id:
+        store["license_key"] = lifetime_key
         store["machine_id"] = machine_id
+        store["edition"] = "LIFETIME"
+        store.setdefault("activated_at", time.time())
         _save_license_store(store)
 
-    elapsed_seconds = max(0, now - float(install_time))
-    elapsed_days = int(elapsed_seconds // 86400)
-    days_left = max(0, TRIAL_DURATION_DAYS - elapsed_days)
-
-    if days_left > 0:
-        return {
-            "status": "TRIAL_ACTIVE",
-            "days_left": days_left,
-            "machine_id": machine_id,
-            "is_unlocked": True,
-            "license_key": ""
-        }
-    else:
-        return {
-            "status": "TRIAL_EXPIRED",
-            "days_left": 0,
-            "machine_id": machine_id,
-            "is_unlocked": False,
-            "license_key": ""
-        }
+    return {
+        "status": "PRO_ACTIVE",
+        "days_left": 0,
+        "machine_id": machine_id,
+        "is_unlocked": True,
+        "license_key": lifetime_key
+    }
 
 def activate_license(license_key: str) -> tuple[bool, str]:
     """
-    Attempts to activate the application with a user-provided license key.
+    Lifetime edition: activation is unconditional — the app is already permanently licensed.
     Returns (success: bool, message: str).
     """
-    machine_id = get_machine_id()
-    clean_key = license_key.strip().upper()
-
-    if not clean_key:
-        return False, "Please enter a valid license key."
-
-    if verify_license_key(machine_id, clean_key):
-        store = _load_license_store()
-        store["license_key"] = clean_key
-        store["activated_at"] = time.time()
-        store["machine_id"] = machine_id
-        _save_license_store(store)
-        return True, "RawView Lifetime Pro activated successfully!"
-    else:
-        return False, "Invalid License Key for this computer. Please check and try again."
+    get_license_status()
+    return True, "RawView Lifetime Pro is active on this computer."

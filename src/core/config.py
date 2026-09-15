@@ -6,8 +6,6 @@ APP_NAME = "RawView"
 APP_VERSION = "v3.9.5"
 APP_PUBLISHER = "BlackBox THC"
 APP_MUTEX_NAME = "RawView_SingleInstance_Mutex_v3.9.5"
-GITHUB_REPO = "jimhpar/RawView_File_Preview"
-GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # Standard Web & Raster Images (Disabled by default in settings)
 STANDARD_IMAGE_EXTENSIONS = {
@@ -100,8 +98,8 @@ PAYMENT_INFO = {
     "price_bdt": "50 TK",
     "bkash_number": "01756678087",
     "bkash_type": "Personal (Send Money)",
-    "whatsapp_number": "+1 (202) 780-6050",
-    "whatsapp_link": "https://wa.me/12027806050",
+    "support_handle": "@chatGptPlusAIbot",
+    "support_link": "https://t.me/chatGptPlusAIbot",
 }
 
 # Directories
@@ -117,10 +115,6 @@ DEFAULT_CONFIG = {
     "show_metadata": True,       # Show format badge, dimensions, size
     "enable_animations": True,   # Smooth fade/scale animations
     "cache_max_mb": 500,         # Max disk cache size
-    # Updater settings
-    "auto_check_updates": True,           # Automatically check for updates
-    "update_check_interval_days": 7,     # Weekly interval
-    "last_update_check_timestamp": 0.0,  # Unix timestamp of last check
     # Standard raster images (jpg, png, webp, gif, ico, bmp) are disabled by default
     "supported_formats": [k for k in SUPPORTED_EXTENSIONS.keys() if k not in STANDARD_IMAGE_EXTENSIONS]
 }

@@ -403,126 +403,6 @@ class VideoPlayerWidget(QWidget):
         pos = self.player.position()
         self.playback_time_changed.emit(pos, dur_ms)
 
-from PyQt6.QtGui import QDesktopServices
-from src.core.licensing import get_license_status, get_machine_id
-from src.core.config import PAYMENT_INFO
-
-class TrialExpiredCard(QWidget):
-    """Sleek glassmorphic card displayed when 7-day free trial expires."""
-    open_settings_requested = pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFixedSize(500, 360)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(10)
-
-        # Title & Price Header
-        title = QLabel("🔒 7-Day Free Trial Ended", self)
-        title.setStyleSheet("color: #FB7185; font-size: 16px; font-weight: 700;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
-
-        sub = QLabel("Unlock unlimited Lifetime Pro access for only <b>50 TK</b>!", self)
-        sub.setStyleSheet("color: #38BDF8; font-size: 13px; font-weight: 600;")
-        sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(sub)
-
-        # 1. Machine Code Box
-        mid_card = QFrame(self)
-        mid_card.setStyleSheet("background-color: rgba(30, 41, 59, 0.85); border: 1px solid #334155; border-radius: 8px; padding: 4px;")
-        mid_layout = QHBoxLayout(mid_card)
-        mid_layout.setContentsMargins(10, 4, 10, 4)
-
-        mid_label = QLabel("1. Your Machine Code:", mid_card)
-        mid_label.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600;")
-        
-        self.mid_text = QLabel(get_machine_id(), mid_card)
-        self.mid_text.setStyleSheet("color: #38BDF8; font-weight: 700; font-family: monospace; font-size: 12px;")
-
-        copy_btn = QPushButton("📋 Copy Code", mid_card)
-        copy_btn.setStyleSheet("background-color: #0284C7; color: white; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 600;")
-        copy_btn.clicked.connect(self._copy_mid)
-
-        mid_layout.addWidget(mid_label)
-        mid_layout.addWidget(self.mid_text, stretch=1)
-        mid_layout.addWidget(copy_btn)
-        layout.addWidget(mid_card)
-
-        # 2. bKash Payment Box
-        bkash_card = QFrame(self)
-        bkash_card.setStyleSheet("background-color: rgba(30, 41, 59, 0.85); border: 1px solid #E11D48; border-radius: 8px; padding: 4px;")
-        bkash_layout = QHBoxLayout(bkash_card)
-        bkash_layout.setContentsMargins(10, 4, 10, 4)
-
-        bkash_label = QLabel("2. bKash Personal (50 TK):", bkash_card)
-        bkash_label.setStyleSheet("color: #FB7185; font-size: 11px; font-weight: 700;")
-
-        self.bkash_val = QLabel(PAYMENT_INFO.get("bkash_number", "01756678087"), bkash_card)
-        self.bkash_val.setStyleSheet("color: #FFFFFF; font-weight: 700; font-family: monospace; font-size: 12px;")
-
-        copy_bkash_btn = QPushButton("📋 Copy Number", bkash_card)
-        copy_bkash_btn.setStyleSheet("background-color: #E11D48; color: white; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 600;")
-        copy_bkash_btn.clicked.connect(self._copy_bkash)
-
-        bkash_layout.addWidget(bkash_label)
-        bkash_layout.addWidget(self.bkash_val, stretch=1)
-        bkash_layout.addWidget(copy_bkash_btn)
-        layout.addWidget(bkash_card)
-
-        # 3. WhatsApp Support Link
-        wa_card = QFrame(self)
-        wa_card.setStyleSheet("background-color: rgba(30, 41, 59, 0.85); border: 1px solid #10B981; border-radius: 8px; padding: 4px;")
-        wa_layout = QHBoxLayout(wa_card)
-        wa_layout.setContentsMargins(10, 4, 10, 4)
-
-        wa_label = QLabel("3. WhatsApp Support:", wa_card)
-        wa_label.setStyleSheet("color: #34D399; font-size: 11px; font-weight: 700;")
-
-        wa_val = QLabel(PAYMENT_INFO.get("whatsapp_number", "+1 (202) 780-6050"), wa_card)
-        wa_val.setStyleSheet("color: #FFFFFF; font-weight: 600; font-size: 12px;")
-
-        open_wa_btn = QPushButton("💬 Open WhatsApp", wa_card)
-        open_wa_btn.setStyleSheet("background-color: #059669; color: white; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 700;")
-        open_wa_btn.clicked.connect(self._open_whatsapp)
-
-        wa_layout.addWidget(wa_label)
-        wa_layout.addWidget(wa_val, stretch=1)
-        wa_layout.addWidget(open_wa_btn)
-        layout.addWidget(wa_card)
-
-        # Action Button to open settings
-        btn_layout = QHBoxLayout()
-        activate_btn = QPushButton("⚡ Enter License Key & Activate Pro", self)
-        activate_btn.setStyleSheet("""
-            background-color: #0284C7;
-            color: #FFFFFF;
-            border: 1px solid #38BDF8;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 12px;
-            font-weight: 700;
-        """)
-        activate_btn.clicked.connect(self.open_settings_requested.emit)
-        btn_layout.addWidget(activate_btn)
-
-        layout.addLayout(btn_layout)
-
-    def _copy_mid(self):
-        mid = self.mid_text.text()
-        QApplication.clipboard().setText(mid)
-
-    def _copy_bkash(self):
-        num = self.bkash_val.text()
-        QApplication.clipboard().setText(num)
-
-    def _open_whatsapp(self):
-        mid = self.mid_text.text()
-        msg = f"Hello! I sent 50 TK for RawView Lifetime Pro.\nMy Machine Code: {mid}"
-        url_str = f"https://wa.me/12027806050?text={msg.replace(' ', '%20').replace('\n', '%0A')}"
-        QDesktopServices.openUrl(QUrl(url_str))
-
 class PageThumbnailCard(QFrame):
     clicked = pyqtSignal(int)
 
@@ -845,10 +725,6 @@ class FloatingPreviewHUD(QWidget):
         self.video_player.playback_time_changed.connect(self._on_video_time_changed)
         self.viewport_stack.addWidget(self.video_player)
 
-        self.trial_card = TrialExpiredCard(self)
-        self.trial_card.open_settings_requested.connect(self._on_open_settings)
-        self.viewport_stack.addWidget(self.trial_card)
-
         self.body_layout.addWidget(self.viewport_stack, stretch=1)
         container_layout.addLayout(self.body_layout, stretch=1)
 
@@ -967,49 +843,6 @@ class FloatingPreviewHUD(QWidget):
         self.current_result = result
         self._last_video_p_sec = -1
         self._last_video_d_sec = -1
-
-        # Check License Status
-        lic_info = get_license_status()
-        is_unlocked = lic_info.get("is_unlocked", True)
-        lic_status = lic_info.get("status")
-
-        # Update license badge in footer
-        if lic_status == "PRO_ACTIVE":
-            self.lic_badge.setText("✨ PRO")
-            self.lic_badge.setStyleSheet("color: #34D399; font-size: 10px; font-weight: 700;")
-        elif lic_status == "TRIAL_ACTIVE":
-            days = lic_info.get("days_left", 7)
-            self.lic_badge.setText(f"⏳ Trial: {days}d left")
-            self.lic_badge.setStyleSheet("color: #38BDF8; font-size: 10px; font-weight: 600;")
-        else:
-            self.lic_badge.setText("🔒 Expired")
-            self.lic_badge.setStyleSheet("color: #FB7185; font-size: 10px; font-weight: 700;")
-
-        # If trial expired -> Display Trial Expired Card
-        if not is_unlocked:
-            self.page_sidebar.hide()
-            self.video_player.stop_video()
-            self.viewport_stack.setCurrentWidget(self.trial_card)
-            fname = Path(file_path).name if not file_path.startswith("ftp://") else file_path.split("/")[-1]
-            self.title_label.setText(fname)
-            self.format_badge.setText("PRO")
-            self.format_badge.setStyleSheet("background-color: #4C0519; color: #FB7185; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px;")
-            self.dim_label.setText("Activation Required")
-            self.mode_label.setText("50 TK Lifetime")
-            self.size_label.setText(result.formatted_size)
-            self.zoom_badge.setText("Locked")
-            self.zoom_badge.setStyleSheet("color: #FB7185; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background-color: rgba(251, 113, 133, 0.2);")
-
-            self.adjustSize()
-            w = self.width()
-            h = self.height()
-            pos = calculate_popup_position(cursor_x, cursor_y, w, h)
-            self.move(pos)
-            self.setWindowOpacity(1.0)
-            self.show()
-            self.raise_()
-            self.visibility_changed.emit(True)
-            return
 
         # Setup multi-page sidebar if document has multiple pages
         page_count = getattr(result, "page_count", 1)

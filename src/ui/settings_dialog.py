@@ -196,14 +196,14 @@ class SettingsDialog(QDialog):
             QPushButton#copyBkashBtn:hover {{
                 background-color: #BE123C;
             }}
-            QPushButton#waBtn {{
-                background-color: #059669;
-                border: 1px solid #34D399;
+            QPushButton#supportBtn {{
+                background-color: #229ED9;
+                border: 1px solid #5BC3F0;
                 color: #FFFFFF;
                 font-weight: 600;
             }}
-            QPushButton#waBtn:hover {{
-                background-color: #047857;
+            QPushButton#supportBtn:hover {{
+                background-color: #1B8AC0;
             }}
         """)
 
@@ -304,22 +304,22 @@ class SettingsDialog(QDialog):
         bkash_row.addWidget(copy_bkash_btn)
         lic_layout.addWidget(self.bkash_row_widget)
 
-        # WhatsApp Support Row
-        self.wa_row_widget = QWidget()
-        wa_row = QHBoxLayout(self.wa_row_widget)
-        wa_row.setContentsMargins(0, 0, 0, 0)
-        wa_label = QLabel("3. WhatsApp Support:")
-        wa_label.setStyleSheet("color: #34D399; font-weight: 700;")
-        self.wa_val = QLineEdit(PAYMENT_INFO.get("whatsapp_number", "+1 (202) 780-6050"))
-        self.wa_val.setReadOnly(True)
-        self.wa_val.setStyleSheet("color: #FFFFFF; font-weight: 600; border: 1px solid #10B981;")
-        wa_btn = QPushButton("💬 Open WhatsApp")
-        wa_btn.setObjectName("waBtn")
-        wa_btn.clicked.connect(self._open_whatsapp)
-        wa_row.addWidget(wa_label)
-        wa_row.addWidget(self.wa_val, stretch=1)
-        wa_row.addWidget(wa_btn)
-        lic_layout.addWidget(self.wa_row_widget)
+        # Telegram Bot Support Row
+        self.support_row_widget = QWidget()
+        support_row = QHBoxLayout(self.support_row_widget)
+        support_row.setContentsMargins(0, 0, 0, 0)
+        support_label = QLabel("3. Telegram Support:")
+        support_label.setStyleSheet("color: #5BC3F0; font-weight: 700;")
+        self.support_val = QLineEdit(PAYMENT_INFO.get("support_handle", "@chatGptPlusAIbot"))
+        self.support_val.setReadOnly(True)
+        self.support_val.setStyleSheet("color: #FFFFFF; font-weight: 600; border: 1px solid #229ED9;")
+        support_btn = QPushButton("💬 Open Telegram Bot")
+        support_btn.setObjectName("supportBtn")
+        support_btn.clicked.connect(self._open_support_bot)
+        support_row.addWidget(support_label)
+        support_row.addWidget(self.support_val, stretch=1)
+        support_row.addWidget(support_btn)
+        lic_layout.addWidget(self.support_row_widget)
 
         # License Key Input Row (Active if not Pro)
         self.key_input_layout = QHBoxLayout()
@@ -334,7 +334,7 @@ class SettingsDialog(QDialog):
 
         # Payment / Purchase instructions note
         self.pay_note = QLabel(
-            "Send 50 TK via bKash Personal (Ref: Machine Code), send TrxID on WhatsApp to get your License Key."
+            "Send 50 TK via bKash Personal (Ref: Machine Code), then send the TrxID to @chatGptPlusAIbot on Telegram to get your License Key."
         )
         self.pay_note.setStyleSheet("color: #94A3B8; font-size: 11px;")
         self.pay_note.setWordWrap(True)
@@ -529,37 +529,6 @@ class SettingsDialog(QDialog):
         cache_layout.addWidget(clear_btn)
         main_layout.addWidget(cache_group)
 
-        # 10. Software Updates
-        update_group = QGroupBox("Software Updates")
-        update_layout = QVBoxLayout(update_group)
-        update_layout.setContentsMargins(14, 12, 14, 12)
-        update_layout.setSpacing(8)
-
-        self.auto_update_cb = QCheckBox("Automatically check for updates weekly (via GitHub Releases)")
-        self.auto_update_cb.setChecked(self.config.get("auto_check_updates", True))
-        update_layout.addWidget(self.auto_update_cb)
-
-        up_action_layout = QHBoxLayout()
-        self.check_updates_btn = QPushButton("🔄 Check for Updates Now")
-        self.check_updates_btn.setObjectName("checkUpdatesBtn")
-        self.check_updates_btn.clicked.connect(self._on_check_updates_clicked)
-        up_action_layout.addWidget(self.check_updates_btn)
-
-        last_ts = self.config.get("last_update_check_timestamp", 0.0)
-        if last_ts > 0:
-            import datetime
-            dt_str = datetime.datetime.fromtimestamp(last_ts).strftime("%d %b %Y, %I:%M %p")
-            status_init = f"Last checked: {dt_str} | Current version: {APP_VERSION}"
-        else:
-            status_init = f"Current version: {APP_VERSION} | Never checked"
-
-        self.update_status_label = QLabel(status_init)
-        self.update_status_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
-        up_action_layout.addWidget(self.update_status_label, stretch=1)
-
-        update_layout.addLayout(up_action_layout)
-        main_layout.addWidget(update_group)
-
         scroll.setWidget(scroll_widget)
         return scroll
 
@@ -723,49 +692,37 @@ class SettingsDialog(QDialog):
         return card
 
     def _refresh_license_ui(self):
-        lic_info = get_license_status()
-        status = lic_info.get("status")
-
-        if status == "PRO_ACTIVE":
-            self.status_badge.setText("✨ LIFETIME PRO ACTIVATED")
-            self.status_badge.setStyleSheet("background-color: #064E3B; color: #34D399; border: 1px solid #10B981; padding: 3px 8px; border-radius: 4px; font-weight: 700;")
-            self.key_input.setVisible(False)
-            self.activate_btn.setVisible(False)
-            self.bkash_row_widget.setVisible(False)
-            self.wa_row_widget.setVisible(False)
-            self.pay_note.setText("Your copy of RawView is fully activated with Lifetime Pro access. Thank you!")
-            self.pay_note.setStyleSheet("color: #34D399; font-size: 11px; font-weight: 600;")
-        elif status == "TRIAL_ACTIVE":
-            days = lic_info.get("days_left", 7)
-            self.status_badge.setText(f"⏳ 7-DAY FREE TRIAL ({days} DAYS LEFT)")
-            self.status_badge.setStyleSheet("background-color: #0C4A6E; color: #38BDF8; border: 1px solid #0284C7; padding: 3px 8px; border-radius: 4px; font-weight: 700;")
-            self.key_input.setVisible(True)
-            self.activate_btn.setVisible(True)
-            self.bkash_row_widget.setVisible(True)
-            self.wa_row_widget.setVisible(True)
-        else:
-            self.status_badge.setText("🔒 TRIAL EXPIRED (ACTIVATION REQUIRED)")
-            self.status_badge.setStyleSheet("background-color: #4C0519; color: #FB7185; border: 1px solid #E11D48; padding: 3px 8px; border-radius: 4px; font-weight: 700;")
-            self.key_input.setVisible(True)
-            self.activate_btn.setVisible(True)
-            self.bkash_row_widget.setVisible(True)
-            self.wa_row_widget.setVisible(True)
+        """Lifetime edition: the app is permanently activated, so only the Pro state exists."""
+        self.status_badge.setText("✨ LIFETIME PRO ACTIVATED")
+        self.status_badge.setStyleSheet("background-color: #064E3B; color: #34D399; border: 1px solid #10B981; padding: 3px 8px; border-radius: 4px; font-weight: 700;")
+        self.key_input.setVisible(False)
+        self.activate_btn.setVisible(False)
+        self.bkash_row_widget.setVisible(False)
+        self.support_row_widget.setVisible(True)
+        self.pay_note.setText("Your copy of RawView is fully activated with Lifetime Pro access. For any help, contact @chatGptPlusAIbot on Telegram.")
+        self.pay_note.setStyleSheet("color: #34D399; font-size: 11px; font-weight: 600;")
 
     def _copy_machine_id(self):
         mid = self.mid_val.text()
         QApplication.clipboard().setText(mid)
-        QMessageBox.information(self, "Copied", f"Machine Code '{mid}' copied to clipboard!\nSend this code to WhatsApp (+1 202 780-6050) after sending 50 TK.")
+        QMessageBox.information(self, "Copied", f"Machine Code '{mid}' copied to clipboard!\nSend this code to @chatGptPlusAIbot on Telegram for support.")
 
     def _copy_bkash(self):
         num = self.bkash_val.text()
         QApplication.clipboard().setText(num)
         QMessageBox.information(self, "Copied", f"bKash Personal Number '{num}' copied to clipboard!\nSend 50 TK (Send Money) with your Machine Code as Reference.")
 
-    def _open_whatsapp(self):
+    def _open_support_bot(self):
+        """Copies the Machine Code, then opens the @chatGptPlusAIbot Telegram bot."""
         mid = self.mid_val.text()
-        msg = f"Hello! I sent 50 TK for RawView Lifetime Pro.\nMy Machine Code: {mid}"
-        url_str = f"https://wa.me/12027806050?text={msg.replace(' ', '%20').replace('\n', '%0A')}"
+        QApplication.clipboard().setText(mid)
+        url_str = PAYMENT_INFO.get("support_link", "https://t.me/chatGptPlusAIbot")
         QDesktopServices.openUrl(QUrl(url_str))
+        QMessageBox.information(
+            self,
+            "Telegram Support",
+            f"Machine Code '{mid}' copied to clipboard.\nOpening @chatGptPlusAIbot — just paste the code in the chat."
+        )
 
     def _do_activate_license(self):
         key = self.key_input.text().strip()
@@ -836,45 +793,6 @@ class SettingsDialog(QDialog):
         self.config["autostart"] = autostart_wanted
         set_autostart(autostart_wanted)
 
-        # Software Updates
-        self.config["auto_check_updates"] = self.auto_update_cb.isChecked()
-
         save_config(self.config)
         self.config_changed.emit(self.config)
         self.accept()
-
-    def _on_check_updates_clicked(self):
-        self.check_updates_btn.setEnabled(False)
-        self.check_updates_btn.setText("Checking...")
-        self.update_status_label.setText("⏳ Checking GitHub for updates...")
-        self.update_status_label.setStyleSheet("color: #38BDF8; font-size: 11px;")
-
-        from src.core.updater import UpdateCheckWorker
-        self._update_worker = UpdateCheckWorker(timeout=6.0, parent=self)
-        self._update_worker.update_checked.connect(self._on_update_check_result)
-        self._update_worker.check_failed.connect(self._on_update_check_failed)
-        self._update_worker.start()
-
-    def _on_update_check_result(self, info: dict):
-        self.check_updates_btn.setEnabled(True)
-        self.check_updates_btn.setText("🔄 Check for Updates Now")
-        import time
-        self.config["last_update_check_timestamp"] = time.time()
-        
-        has_update = info.get("has_update", False)
-        latest_ver = info.get("latest_version", APP_VERSION)
-        if has_update:
-            self.update_status_label.setText(f"🚀 New version {latest_ver} available!")
-            self.update_status_label.setStyleSheet("color: #38BDF8; font-weight: bold; font-size: 11px;")
-            from src.ui.update_dialog import UpdatePromptDialog
-            dlg = UpdatePromptDialog(info, parent=self)
-            dlg.exec()
-        else:
-            self.update_status_label.setText(f"✅ You're up to date! RawView {APP_VERSION} is the latest version.")
-            self.update_status_label.setStyleSheet("color: #34D399; font-size: 11px;")
-
-    def _on_update_check_failed(self, error_msg: str):
-        self.check_updates_btn.setEnabled(True)
-        self.check_updates_btn.setText("🔄 Check for Updates Now")
-        self.update_status_label.setText(f"⚠️ Could not check updates: {error_msg}")
-        self.update_status_label.setStyleSheet("color: #FB7185; font-size: 11px;")
